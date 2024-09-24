@@ -27,15 +27,17 @@ function updateLeaderboard(newScore) {
 	leaderboard = leaderboard.slice(0, 5);
 
 	// Save the leaderboard to CloudStorage
-	Telegram.WebApp.CloudStorage.setItem('leaderboard', JSON.stringify(leaderboard), function (error) {
+	Telegram.WebApp.invokeCustomMethod('shareLeaderboard', { leaderboard: JSON.stringify(leaderboard) }, function (error, result) {
 		if (error) {
-			console.error('Failed to save leaderboard:', error);
+			console.error('Failed to share leaderboard:', error);
+		} else {
+			console.log('Leaderboard successfully shared:', result);
 		}
 	});
 }
 
 function setup() {
-    Telegram.WebApp.CloudStorage.getItem('leaderboard', function(error, value) {
+    Telegram.WebApp.invokeCustomMethod('getLeaderboard', {}, function(error, value) {
         if (!error && value) {
             leaderboard = JSON.parse(value);
         }
