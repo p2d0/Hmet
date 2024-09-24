@@ -7,7 +7,7 @@ var highscore = 0;
 function updateHighScore(newScore) {
 	if (newScore > highscore) {
 		highscore = newScore
-		Telegram.WebApp.sendData(highscore, function (error, result) {
+		Telegram.WebApp.sendData(''+highscore, function (error, result) {
 			if (error) {
 				console.error('Failed to send leaderboard data:', error);
 			} else {
