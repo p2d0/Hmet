@@ -3,6 +3,7 @@ var score = 0;
 var num;
 var randY;
 var highscore = 0;
+Telegram.WebApp.expand();
 
 function updateHighScore(newScore) {
 	if (newScore > highscore) {
