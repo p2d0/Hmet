@@ -5,40 +5,78 @@ var randY;
 var leaderboard = [];
 
 function updateLeaderboard(newScore) {
-	// Simulate getting the user's name from Telegram
-	var userName = "Player";
-	var user = Telegram.WebApp.initDataUnsafe.user;
-	if (user) {
-		userName = user.username || (user.first_name && user.last_name ? user.first_name + " " + user.last_name : user.first_name);
-	}
-
-	// Add the new score to the leaderboard
-	var existingEntry = leaderboard.find(entry => entry.name === userName);
-	if (existingEntry) {
-		existingEntry.score = Math.max(existingEntry.score, newScore);
-	} else {
-		leaderboard.push({ name: userName, score: newScore });
-	}
-
-	// Sort the leaderboard by score in descending order
-	leaderboard.sort((a, b) => b.score - a.score);
-
-	// Keep only the top 5 scores
-	leaderboard = leaderboard.slice(0, 5);
-
-	// Save the leaderboard to CloudStorage
-	Telegram.WebApp.CloudStorage.setItem('leaderboard', JSON.stringify(leaderboard), function (error) {
-		if (error) {
-			console.error('Failed to save leaderboard:', error);
+	// Fetch the latest leaderboard from Firebase
+	fetch('https://ahmetgame-2c5cd-default-rtdb.europe-west1.firebasedatabase.app/leaderboards.json')
+	.then(response => {
+		if (!response.ok) {
+			throw new Error('Failed to load leaderboard');
 		}
+		return response.json();
+	})
+	.then(data => {
+		if (data) {
+			leaderboard = data;
+		}
+
+		// Simulate getting the user's name from Telegram
+		var userName = "Player";
+		var user = Telegram.WebApp.initDataUnsafe.user;
+		if (user) {
+			userName = user.username || (user.first_name && user.last_name ? user.first_name + " " + user.last_name : user.first_name);
+		}
+
+		// Add the new score to the leaderboard
+		var existingEntry = leaderboard.find(entry => entry.name === userName);
+		if (existingEntry) {
+			existingEntry.score = Math.max(existingEntry.score, newScore);
+		} else {
+			leaderboard.push({ name: userName, score: newScore });
+		}
+
+		// Sort the leaderboard by score in descending order
+		leaderboard.sort((a, b) => b.score - a.score);
+
+		// Keep only the top 5 scores
+		leaderboard = leaderboard.slice(0, 10);
+
+		// Save the updated leaderboard to Firebase
+		return fetch('https://ahmetgame-2c5cd-default-rtdb.europe-west1.firebasedatabase.app/leaderboards.json', {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(leaderboard)
+		});
+	})
+	.then(response => {
+		if (!response.ok) {
+			throw new Error('Failed to save leaderboard');
+		}
+		return response.json();
+	})
+	.then(data => {
+		console.log('Leaderboard saved successfully:', data);
+	})
+	.catch(error => {
+		console.error('Failed to update leaderboard:', error);
 	});
 }
 
 function setup() {
-    Telegram.WebApp.CloudStorage.getItem('leaderboard', function(error, value) {
-        if (!error && value) {
-            leaderboard = JSON.parse(value);
+    fetch('https://ahmetgame-2c5cd-default-rtdb.europe-west1.firebasedatabase.app/leaderboards.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to load leaderboard');
         }
+        return response.json();
+    })
+    .then(data => {
+        if (data) {
+            leaderboard = data;
+        }
+    })
+    .catch(error => {
+        console.error('Failed to load leaderboard:', error);
     });
 
 	lowerminusHeight = -height / 3;
@@ -86,7 +124,7 @@ function draw() {
 	// Display leaderboard
 	fill(255)
 	text("Leaderboard:", width - 200, 50)
-	for (var i = 0; i < leaderboard.length; i++) {
+	for (var i = 0; i < Math.min(5, leaderboard.length); i++) {
 		text(leaderboard[i].name + ": " + leaderboard[i].score, width - 200, 80 + i * 30)
 	}
 }
