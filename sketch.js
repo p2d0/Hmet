@@ -1,14 +1,43 @@
-var hmet,deadHmet,parachuteHmet;
+var hmet, deadHmet, parachuteHmet;
 var score = 0;
 var num;
 var randY;
+var leaderboard = [];
+
+function updateLeaderboard(newScore) {
+	// Simulate getting the user's name from Telegram
+	var userName = Telegram.WebApp.initDataUnsafe.user ? Telegram.WebApp.initDataUnsafe.user.first_name : "Player";
+
+	// Add the new score to the leaderboard
+	leaderboard.push({ name: userName, score: newScore });
+
+	// Sort the leaderboard by score in descending order
+	leaderboard.sort((a, b) => b.score - a.score);
+
+	// Keep only the top 5 scores
+	leaderboard = leaderboard.slice(0, 5);
+
+	// Save the leaderboard to CloudStorage
+	Telegram.WebApp.CloudStorage.setItem('leaderboard', JSON.stringify(leaderboard), function (error) {
+		if (error) {
+			console.error('Failed to save leaderboard:', error);
+		}
+	});
+}
+
 function setup() {
-	lowerminusHeight = -height/3;
-	upperminusHeight = height/4
-	randY = 
-	createCanvas(windowWidth, windowHeight)
+    Telegram.WebApp.CloudStorage.getItem('leaderboard', function(error, value) {
+        if (!error && value) {
+            leaderboard = JSON.parse(value);
+        }
+    });
+
+	lowerminusHeight = -height / 3;
+	upperminusHeight = height / 4
+	randY =
+		createCanvas(windowWidth, windowHeight)
 	textSize(25)
-	hmetSizeX = windowWidth/7;
+	hmetSizeX = windowWidth / 7;
 	hmetSizeY = 100;
 	hmet = loadImage("ahmet.png")
 	bg = loadImage("bg.jpg")
@@ -18,120 +47,133 @@ function setup() {
 	ahmet3 = new Ahmet()
 	ahmets = [];
 	ahmets.push(ahmet3)
-    num = 300;
+	num = 300;
+
 }
 
 function draw() {
-    //ellipse(x++, y++, 60, 60)
-    background(bg)
-    fill(0,255,0)
-    //rect(0,height-50,width,50)
-    if(frameCount < 200){
-    	text("Save Private Ahmet",100,100)
-    }
-    if(frameCount % num == 0){
-    	if(score > 0){
-    	lowerminusHeight-=100
-    	upperminusHeight-=100
-    	ahmets.push(new Ahmet());
-    	num+=200
-    }
-    	else if(score == 0 && ahmets.length > 1){
-    		ahmets.pop();
-    		num = 300;
-    	}
-    } 
-    for(var ahmet = 0; ahmet < ahmets.length; ahmet++){
-    	ahmets[ahmet].show()
-    }
-    text(score,50,50)
-
-}
-function mousePressed(){
-	for(var ahmet of ahmets)
-	if( (mouseX >= ahmet.x && mouseX <= ahmet.x+hmetSizeX) && (mouseY >= ahmet.y-50 && mouseY <= ahmet.y+hmetSizeX)){
-		console.log("SAVED")
-		if(ahmet.y > (height-180)){
-			ahmet.v = 0.5;
-			return
+	background(bg)
+	fill(0, 255, 0)
+	if (frameCount < 200) {
+		text("Save Private Ahmet", 100, 100)
+	}
+	if (frameCount % num == 0) {
+		if (score > 0) {
+			lowerminusHeight -= 100
+			upperminusHeight -= 100
+			ahmets.push(new Ahmet());
+			num += 200
 		}
-		ahmet.parachute = 1;
+		else if (score == 0 && ahmets.length > 1) {
+			ahmets.pop();
+			num = 300;
+		}
+	}
+	for (var ahmet = 0; ahmet < ahmets.length; ahmet++) {
+		ahmets[ahmet].show()
+	}
+	text(score, 50, 50)
+
+	// Display leaderboard
+	fill(255)
+	text("Leaderboard:", width - 200, 50)
+	for (var i = 0; i < leaderboard.length; i++) {
+		text(leaderboard[i].name + ": " + leaderboard[i].score, width - 200, 80 + i * 30)
 	}
 }
-class Ahmet{
-	constructor(){
+
+function mousePressed() {
+	for (var ahmet of ahmets)
+		if ((mouseX >= ahmet.x && mouseX <= ahmet.x + hmetSizeX) && (mouseY >= ahmet.y - 50 && mouseY <= ahmet.y + hmetSizeX)) {
+			console.log("SAVED")
+			if (ahmet.y > (height - 180)) {
+				ahmet.v = 0.5;
+				return
+			}
+			ahmet.parachute = 1;
+		}
+}
+class Ahmet {
+	constructor() {
 		this.parachuteImg = parachuteHmet;
 		this.deathImg = deadHmet;
 		this.init()
 	}
-	init(){
-	this.img = hmet
-	this.g = 1;
-	this.a = 0.2;
-	this.v = 1;
-	this.y = random(lowerminusHeight,upperminusHeight);
-	this.parachute = 0;
-	this.x = random(hmetSizeX,width-hmetSizeX);
-	this.end = 0;
-	this.rip = 0;
-	this.earthOffset = random(50,150)
+	init() {
+		this.img = hmet
+		this.g = 1;
+		this.a = 0.2;
+		this.v = 1;
+		this.y = random(lowerminusHeight, upperminusHeight);
+		this.parachute = 0;
+		this.x = random(hmetSizeX, width - hmetSizeX);
+		this.end = 0;
+		this.rip = 0;
+		this.earthOffset = random(50, 150)
 	}
-	isOnEarth(){
-		return (this.y+hmetSizeX > height-this.earthOffset);
+	isOnEarth() {
+		return (this.y + hmetSizeX > height - this.earthOffset);
 	}
-	parachuteFall(){
+	parachuteFall() {
 		this.v = 1;
 		this.parachuteAlive();
-		this.y+=this.v;
+		this.y += this.v;
 	}
-	show(){
-
-	if(this.isOnEarth()){
-		if(this.parachute && !this.end)
-			this.alive()
-		else{
-		this.dead();
-		this.end = 1;
-	}
-		if(frameCount % 30 == 0){
-			if(this.parachute && !this.end)
-				score++
-			else{
-				score = 0
-				ahmets = [];
-				ahmets.push(this);
+	show() {
+		if (this.isOnEarth()) {
+			if (this.parachute && !this.end)
+				this.alive()
+			else {
+				this.dead();
+				this.end = 1;
 			}
-			this.init();
-}
-		return;
-		
-	}else if(this.parachute){
-		this.parachuteFall();
+			if (frameCount % 30 == 0) {
+				if (this.parachute && !this.end) {
+					score++
+					updateLeaderboard(score)  // Update leaderboard with new score
+				}
+				else {
+					score = 0
+					ahmets = [];
+					ahmets.push(this);
+					updateLeaderboard(score)  // Update leaderboard with reset score
+				}
+				this.init();
+			}
+			return;
+		} else if (this.parachute) {
+			this.parachuteFall();
+		}
+		this.freeFall();
 	}
-	this.freeFall();
-	}
-	freeFall(){
+	freeFall() {
 		this.alive()
-		this.y+=this.v
-		this.v = this.v+this.a
+		this.y += this.v
+		this.v = this.v + this.a
 	}
-	dead(){
-		image(this.deathImg,this.x,this.y,hmetSizeX,hmetSizeX);
+	dead() {
+		image(this.deathImg, this.x, this.y, hmetSizeX, hmetSizeX);
 	}
-	parachuteAlive(){
+	parachuteAlive() {
 		this.alive()
-		image(this.parachuteImg,this.x,this.y-25,hmetSizeX,hmetSizeX);
+		image(this.parachuteImg, this.x, this.y - 25, hmetSizeX, hmetSizeX);
 	}
-	alive(){
-		image(this.img,this.x,this.y,hmetSizeX,hmetSizeX);
+	alive() {
+		image(this.img, this.x, this.y, hmetSizeX, hmetSizeX);
 	}
-	setImg(img){
+	setImg(img) {
 		this.img = img;
 	}
-	setParachuteImg(img){
+	setParachuteImg(img) {
 		this.parachuteImg = img;
 	}
-	setDeathImg(img){
+	setDeathImg(img) {
 		this.deathImg = img;
 	}
 }
+
+
+
+
+
+
