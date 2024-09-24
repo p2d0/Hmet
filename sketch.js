@@ -2,47 +2,22 @@ var hmet, deadHmet, parachuteHmet;
 var score = 0;
 var num;
 var randY;
-var leaderboard = [];
+var highscore = 0;
 
-function updateLeaderboard(newScore) {
-	// Simulate getting the user's name from Telegram
-	var userName = "Player";
-	var user = Telegram.WebApp.initDataUnsafe.user;
-	if (user) {
-		userName = user.username || (user.first_name && user.last_name ? user.first_name + " " + user.last_name : user.first_name);
+function updateHighScore(newScore) {
+	if (newScore > highscore) {
+		highscore = newScore
+		Telegram.WebApp.sendData(highscore, function (error, result) {
+			if (error) {
+				console.error('Failed to send leaderboard data:', error);
+			} else {
+				console.log('Leaderboard data successfully sent:', result);
+			}
+		});
 	}
-
-	// Add the new score to the leaderboard
-	var existingEntry = leaderboard.find(entry => entry.name === userName);
-	if (existingEntry) {
-		existingEntry.score = Math.max(existingEntry.score, newScore);
-	} else {
-		leaderboard.push({ name: userName, score: newScore });
-	}
-
-	// Sort the leaderboard by score in descending order
-	leaderboard.sort((a, b) => b.score - a.score);
-
-	// Keep only the top 5 scores
-	leaderboard = leaderboard.slice(0, 5);
-
-	// Save the leaderboard to CloudStorage
-	Telegram.WebApp.invokeCustomMethod('shareLeaderboard', { leaderboard: JSON.stringify(leaderboard) }, function (error, result) {
-		if (error) {
-			console.error('Failed to share leaderboard:', error);
-		} else {
-			console.log('Leaderboard successfully shared:', result);
-		}
-	});
 }
 
 function setup() {
-    Telegram.WebApp.invokeCustomMethod('getLeaderboard', {}, function(error, value) {
-        if (!error && value) {
-            leaderboard = JSON.parse(value);
-        }
-    });
-
 	lowerminusHeight = -height / 3;
 	upperminusHeight = height / 4
 	randY =
@@ -84,13 +59,6 @@ function draw() {
 		ahmets[ahmet].show()
 	}
 	text(score, 50, 50)
-
-	// Display leaderboard
-	fill(255)
-	text("Leaderboard:", width - 200, 50)
-	for (var i = 0; i < leaderboard.length; i++) {
-		text(leaderboard[i].name + ": " + leaderboard[i].score, width - 200, 80 + i * 30)
-	}
 }
 
 function mousePressed() {
@@ -141,13 +109,13 @@ class Ahmet {
 			if (frameCount % 30 == 0) {
 				if (this.parachute && !this.end) {
 					score++
-					updateLeaderboard(score)  // Update leaderboard with new score
+					updateHighScore(score)  // Update leaderboard with new score
 				}
 				else {
 					score = 0
 					ahmets = [];
 					ahmets.push(this);
-					updateLeaderboard(score)  // Update leaderboard with reset score
+					updateHighScore(score)  // Update leaderboard with reset score
 				}
 				this.init();
 			}
