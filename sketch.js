@@ -6,10 +6,19 @@ var leaderboard = [];
 
 function updateLeaderboard(newScore) {
 	// Simulate getting the user's name from Telegram
-	var userName = Telegram.WebApp.initDataUnsafe.user ? Telegram.WebApp.initDataUnsafe.user.first_name : "Player";
+	var userName = "Player";
+	var user = Telegram.WebApp.initDataUnsafe.user;
+	if (user) {
+		userName = user.username || (user.first_name && user.last_name ? user.first_name + " " + user.last_name : user.first_name);
+	}
 
 	// Add the new score to the leaderboard
-	leaderboard.push({ name: userName, score: newScore });
+	var existingEntry = leaderboard.find(entry => entry.name === userName);
+	if (existingEntry) {
+		existingEntry.score = Math.max(existingEntry.score, newScore);
+	} else {
+		leaderboard.push({ name: userName, score: newScore });
+	}
 
 	// Sort the leaderboard by score in descending order
 	leaderboard.sort((a, b) => b.score - a.score);
